@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Message, PhishingChallenge, Mission } from './types';
 import { cases, SUPERVISOR_NAME } from './constants';
 import { getTutorResponse, generatePhishingChallenge, validatePasswordStrength, validateChallengeResponse } from './services/geminiService';
-import { SendIcon, LoadingSpinner, ShieldCheckIcon, CheckCircleIcon, LockClosedIcon, TargetIcon, UserCircleIcon, ArrowLeftIcon, CaseIcon, TerminalIcon, IntelIcon, DocumentTextIcon, SkipIcon } from './components/icons';
+import { SendIcon, LoadingSpinner, ShieldCheckIcon, CheckCircleIcon, TargetIcon, UserCircleIcon, ArrowLeftIcon, CaseIcon, TerminalIcon, IntelIcon, DocumentTextIcon, SkipIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from './components/icons';
+import HelpChat from './components/HelpChat';
+import NoteTaker from './components/NoteTaker';
 
 type GameState = 'intake' | 'welcome' | 'briefing' | 'training' | 'challenge' | 'challenge-complete' | 'case-summary' | 'all-missions-complete';
 type View = 'dashboard' | 'profile';
@@ -98,7 +100,7 @@ const FormattedMessage = ({ text }: { text: string }) => {
   const flushList = () => {
     if (listType && listItems.length > 0) {
       const ListComponent = listType === 'ul' ? 'ul' : 'ol';
-      const listClass = listType === 'ul' ? 'list-disc' : 'list-decimal';
+      const listClass = listType === 'ul' ? 'list-disc' : 'ol';
       elements.push(
         <ListComponent key={elements.length} className={`${listClass} list-inside pl-4 my-2 space-y-1 text-left`}>
           {listItems.map((item, i) => <li key={i}>{renderWithBold(item)}</li>)}
@@ -416,6 +418,9 @@ export default function App() {
     const [challengeData, setChallengeData] = useState<any>(null);
     const [challengeFeedback, setChallengeFeedback] = useState<{isCorrect: boolean, text: string} | null>(null);
 
+    const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState(false);
+    const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
+
     const currentCase = cases[currentCaseIndex];
     const currentMission = currentCase.missions[currentMissionIndex];
 
@@ -438,6 +443,16 @@ export default function App() {
             .finally(() => setIsLoading(false));
     }, [currentMission]);
     
+    const handleMissionSelect = (caseIdx: number, missionIdx: number) => {
+        playSound('click');
+        setCurrentCaseIndex(caseIdx);
+        setCurrentMissionIndex(missionIdx);
+        setGameState('briefing');
+        setMessages([]);
+        setChallengeData(null);
+        setChallengeFeedback(null);
+        setIsAwaitingChallenge(false);
+    };
 
     const handleSendMessage = async (messageText: string) => {
         if (!messageText.trim() || isLoading) return;
@@ -471,9 +486,10 @@ export default function App() {
         setIsLoading(true);
         try {
             if (currentMission.challenge.type === 'spot-the-phish') {
-                const emails = await generatePhishingChallenge(currentMission.challenge.prompt);
-                setChallengeData(emails);
-            } else {
+                const email = await generatePhishingChallenge(currentMission.challenge.prompt);
+                setChallengeData(email);
+            }
+            else {
                 // For other challenge types, data is generated on-the-fly or not needed.
                 setChallengeData({});
             }
@@ -486,10 +502,17 @@ export default function App() {
         }
     };
     
-    const handlePhishingSelect = (email: PhishingChallenge) => {
-        const isCorrect = email.is_phishing;
+    const handlePhishingClassification = (isPhishingGuess: boolean) => {
+        const email = challengeData as PhishingChallenge;
+        if (!email) return;
+
+        const isCorrect = email.is_phishing === isPhishingGuess;
         playSound(isCorrect ? 'success' : 'fail');
-        setChallengeFeedback({ isCorrect, text: isCorrect ? `CORRECT. ${email.explanation}` : `INCORRECT. This was a legitimate email. ${email.explanation}` });
+        setChallengeFeedback({ 
+            isCorrect, 
+            text: isCorrect ? `CORRECT. ${email.explanation}` : `INCORRECT. ${email.explanation}` 
+        });
+
         if (isCorrect) {
             setCompletedMissionIds(prev => new Set(prev).add(currentMission.id));
         }
@@ -609,7 +632,7 @@ export default function App() {
                       <h2 className="font-orbitron text-2xl text-cyan-400 mb-4 text-center text-glow uppercase tracking-widest">// LIVE OPERATION //</h2>
                       {isLoading ? <div className="flex justify-center items-center h-64"><LoadingSpinner/></div> : (
                         <>
-                          {currentMission.challenge.type === 'spot-the-phish' && <PhishingChallengeComponent emails={challengeData} onSelect={handlePhishingSelect} />}
+                          {currentMission.challenge.type === 'spot-the-phish' && <PhishingChallengeComponent email={challengeData} onClassify={handlePhishingClassification} />}
                           {currentMission.challenge.type === 'password-strength' && <PasswordChallengeComponent onSubmit={handlePasswordSubmit} feedback={challengeFeedback} isLoading={isLoading}/>}
                           {currentMission.challenge.type === 'text-response' && <TextChallengeComponent mission={currentMission} onSubmit={handleTextChallengeSubmit} isLoading={isLoading} />}
                         </>
@@ -673,6 +696,25 @@ export default function App() {
     
     const totalMissions = cases.reduce((acc, c) => acc + c.missions.length, 0);
 
+    let leftColClass, mainColClass, rightColClass;
+    if (isLeftSidebarCollapsed && isRightSidebarCollapsed) {
+        leftColClass = 'md:col-span-1';
+        mainColClass = 'md:col-span-10';
+        rightColClass = 'md:col-span-1';
+    } else if (isLeftSidebarCollapsed) {
+        leftColClass = 'md:col-span-1';
+        mainColClass = 'md:col-span-8';
+        rightColClass = 'md:col-span-3';
+    } else if (isRightSidebarCollapsed) {
+        leftColClass = 'md:col-span-3';
+        mainColClass = 'md:col-span-8';
+        rightColClass = 'md:col-span-1';
+    } else {
+        leftColClass = 'md:col-span-3';
+        mainColClass = 'md:col-span-6';
+        rightColClass = 'md:col-span-3';
+    }
+
     return (
         <div className="w-full h-screen bg-black text-gray-300 flex flex-col p-4 gap-4" onClick={() => audioContext.state === 'suspended' && audioContext.resume()}>
             {gameState !== 'intake' && gameState !== 'welcome' && (
@@ -690,12 +732,19 @@ export default function App() {
                 </main>
             ) : view === 'dashboard' ? (
                 <div className="w-full flex-grow grid grid-cols-1 md:grid-cols-12 gap-4 min-h-0 fade-in">
-                    <aside className="md:col-span-3 hud-border rounded-lg p-4 overflow-y-auto flex flex-col">
-                        <div className="flex items-center gap-2 text-cyan-400 font-orbitron text-xl border-b border-slate-700 pb-2 mb-4">
-                            <CaseIcon />
-                            <h2 className="uppercase tracking-wider">Case Files</h2>
+                    <aside className={`hud-border rounded-lg p-4 overflow-y-auto flex flex-col transition-all duration-300 ${leftColClass}`}>
+                        <div className="flex items-center justify-between text-cyan-400 font-orbitron text-xl border-b border-slate-700 pb-2 mb-4">
+                            {!isLeftSidebarCollapsed && (
+                                <div className="flex items-center gap-2">
+                                    <CaseIcon />
+                                    <h2 className="uppercase tracking-wider">Case Files</h2>
+                                </div>
+                            )}
+                            <button onClick={() => { playSound('click'); setIsLeftSidebarCollapsed(!isLeftSidebarCollapsed); }} className="ml-auto p-1 hover:bg-cyan-900/50 rounded-md">
+                                {isLeftSidebarCollapsed ? <ChevronDoubleRightIcon/> : <ChevronDoubleLeftIcon/>}
+                            </button>
                         </div>
-                        <div className="space-y-4 overflow-y-auto flex-grow">
+                        <div className={`space-y-4 overflow-y-auto flex-grow ${isLeftSidebarCollapsed ? 'hidden' : ''}`}>
                             {cases.map((c, caseIndex) => {
                                 const isCaseOpen = caseIndex <= currentCaseIndex;
                                 return (
@@ -707,15 +756,19 @@ export default function App() {
                                             {c.missions.map((mission, missionIndex) => {
                                                 const isCompleted = completedMissionIds.has(mission.id);
                                                 const isCurrent = caseIndex === currentCaseIndex && missionIndex === currentMissionIndex;
-                                                const isLocked = caseIndex > currentCaseIndex || (caseIndex === currentCaseIndex && missionIndex > currentMissionIndex && !completedMissionIds.has(c.missions[missionIndex - 1]?.id));
 
                                                 return (
-                                                    <li key={mission.id} className={`flex items-center gap-3 p-2 rounded-md transition-colors ${isCurrent ? 'bg-cyan-900/30' : ''}`}>
+                                                    <li 
+                                                        key={mission.id} 
+                                                        className={`flex items-center gap-3 p-2 rounded-md transition-colors cursor-pointer hover:bg-cyan-900/50 ${isCurrent ? 'bg-cyan-900/30' : ''}`}
+                                                        onClick={() => handleMissionSelect(caseIndex, missionIndex)}
+                                                        onMouseEnter={() => playSound('hover')}
+                                                    >
                                                         <div className="flex-shrink-0">
-                                                            {isCompleted ? <CheckCircleIcon /> : isLocked ? <LockClosedIcon/> : <TargetIcon/>}
+                                                            {isCompleted ? <CheckCircleIcon /> : <TargetIcon/>}
                                                         </div>
                                                         <div className="flex-grow">
-                                                            <h3 className={`font-semibold ${isLocked ? 'text-gray-600' : 'text-gray-300'}`}>{mission.title}</h3>
+                                                            <h3 className="font-semibold text-gray-300">{mission.title}</h3>
                                                         </div>
                                                     </li>
                                                 );
@@ -727,7 +780,7 @@ export default function App() {
                         </div>
                     </aside>
 
-                    <main className="md:col-span-6 hud-border rounded-lg flex flex-col overflow-hidden relative">
+                    <main className={`hud-border rounded-lg flex flex-col overflow-hidden relative transition-all duration-300 ${mainColClass}`}>
                         <div className="flex items-center justify-between p-2 px-4 border-b border-slate-700 bg-black font-mono text-xs text-cyan-300/70">
                             <div className="flex items-center gap-2"><TerminalIcon/><span>// COMMS_CHANNEL: ENCRYPTED</span></div>
                             <span>// STATUS: ACTIVE</span>
@@ -735,12 +788,19 @@ export default function App() {
                         {renderContent()}
                     </main>
 
-                    <aside className="md:col-span-3 hud-border rounded-lg p-4 overflow-y-auto flex flex-col gap-4">
-                        <div className="flex items-center gap-2 text-cyan-400 font-orbitron text-xl border-b border-slate-700 pb-2 mb-4">
-                            <IntelIcon />
-                            <h2 className="uppercase tracking-wider">Objective Intel</h2>
+                    <aside className={`hud-border rounded-lg p-4 overflow-y-auto flex flex-col gap-4 transition-all duration-300 ${rightColClass}`}>
+                        <div className="flex items-center justify-between text-cyan-400 font-orbitron text-xl border-b border-slate-700 pb-2">
+                            {!isRightSidebarCollapsed && (
+                                <div className="flex items-center gap-2">
+                                    <IntelIcon />
+                                    <h2 className="uppercase tracking-wider">Objective Intel</h2>
+                                </div>
+                            )}
+                             <button onClick={() => { playSound('click'); setIsRightSidebarCollapsed(!isRightSidebarCollapsed); }} className="ml-auto p-1 hover:bg-cyan-900/50 rounded-md">
+                                {isRightSidebarCollapsed ? <ChevronDoubleLeftIcon/> : <ChevronDoubleRightIcon/>}
+                            </button>
                         </div>
-                        <div className="space-y-4">
+                        <div className={`space-y-4 ${isRightSidebarCollapsed ? 'hidden' : ''}`}>
                             <div className="bg-gray-900/50 p-4">
                                 <h3 className="font-bold text-gray-400 mb-1 text-sm uppercase tracking-wider">Current Case File</h3>
                                 <p className="text-cyan-400 font-semibold">{currentCase.title}</p>
@@ -761,6 +821,10 @@ export default function App() {
                     onBack={() => { playSound('click'); setView('dashboard'); }}
                 />
              )}
+            <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-4">
+                <NoteTaker />
+                <HelpChat mission={currentMission} />
+            </div>
         </div>
     );
 }
@@ -814,20 +878,24 @@ const ProfilePage: React.FC<{
 
 
 // Challenge Components
-const PhishingChallengeComponent: React.FC<{emails: PhishingChallenge[] | null, onSelect: (email: PhishingChallenge) => void}> = ({emails, onSelect}) => {
-    if (!emails) return <div className="flex justify-center items-center h-full"><LoadingSpinner/></div>;
+const PhishingChallengeComponent: React.FC<{email: PhishingChallenge | null, onClassify: (isPhishingGuess: boolean) => void}> = ({email, onClassify}) => {
+    if (!email) return <div className="flex justify-center items-center h-full"><LoadingSpinner/></div>;
     return (
       <div>
-        <p className="text-center mb-6 text-lg text-cyan-300">One of these transmissions is hostile. Identify the phishing attempt.</p>
-        <div className="grid lg:grid-cols-1 gap-4">
-            {emails.map((email, index) => (
-                <div key={index} className="bg-gray-950 p-4 border-2 border-slate-700 hover:border-cyan-500 cursor-pointer transition-all duration-300 transform hover:scale-105" onClick={() => onSelect(email)} onMouseEnter={() => playSound('hover')}>
-                    <p className="font-bold text-gray-400 font-mono text-sm">From: {email.sender_name} &lt;{email.sender_email}&gt;</p>
-                    <p className="font-bold my-1 text-gray-200">Subject: {email.subject}</p>
-                    <hr className="border-slate-600 my-2"/>
-                    <p className="text-sm whitespace-pre-wrap text-gray-300">{email.body}</p>
-                </div>
-            ))}
+        <p className="text-center mb-6 text-lg text-cyan-300">Analyze the following transmission. Is it a hostile phishing attempt?</p>
+        <div className="bg-gray-950 p-4 border-2 border-slate-700 mb-6 max-w-2xl mx-auto">
+            <p className="font-bold text-gray-400 font-mono text-sm">From: {email.sender_name} &lt;{email.sender_email}&gt;</p>
+            <p className="font-bold my-1 text-gray-200">Subject: {email.subject}</p>
+            <hr className="border-slate-600 my-2"/>
+            <p className="text-sm whitespace-pre-wrap text-gray-300">{email.body}</p>
+        </div>
+        <div className="flex justify-center gap-4">
+            <button onClick={() => onClassify(true)} className="btn-secondary" onMouseEnter={() => playSound('hover')}>
+                [ Hostile (Phishing) ]
+            </button>
+            <button onClick={() => onClassify(false)} className="btn-primary" onMouseEnter={() => playSound('hover')}>
+                [ Legitimate ]
+            </button>
         </div>
       </div>
     );
@@ -868,7 +936,7 @@ const TextChallengeComponent: React.FC<{mission: Mission, onSubmit: (plan: strin
     
     return (
          <div className="max-w-lg mx-auto mt-8">
-            <div className="text-center mb-4 text-lg text-cyan-300">
+            <div className="text-left mb-4 text-lg text-cyan-300 whitespace-pre-wrap font-mono">
                 <FormattedMessage text={prompt} />
             </div>
             <textarea value={text} onChange={e => setText(e.target.value)} rows={5}

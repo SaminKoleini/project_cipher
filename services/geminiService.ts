@@ -30,8 +30,34 @@ export async function getTutorResponse(
   }
 }
 
+export async function getHelpResponse(
+  history: { role: 'user' | 'model'; parts: { text: string }[] }[],
+  newMessage: string,
+  missionContext: string
+): Promise<string> {
+    const systemInstruction = `You are 'Skillet', a cute and friendly AI assistant shaped like a skillet. You are here to help recruits in the 'Project Cipher' cybersecurity training program. If a user is stuck, provide helpful hints and explain concepts in simple terms. Avoid giving direct answers immediately. Your personality is warm, encouraging, and a little bit quirky. Start your first message by introducing yourself.
+    
+    The user is currently on the following mission: ${missionContext}`;
 
-export async function generatePhishingChallenge(prompt: string): Promise<PhishingChallenge[]> {
+    try {
+        const model = 'gemini-2.5-flash';
+        const chat = ai.chats.create({
+            model: model,
+            config: { systemInstruction },
+            history,
+        });
+
+        const response: GenerateContentResponse = await chat.sendMessage({ message: newMessage });
+        return response.text;
+
+    } catch(error) {
+        console.error("Error getting help response:", error);
+        return "Sorry, I'm having a little trouble connecting. Please try again in a moment.";
+    }
+}
+
+
+export async function generatePhishingChallenge(prompt: string): Promise<PhishingChallenge> {
   try {
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -39,19 +65,16 @@ export async function generatePhishingChallenge(prompt: string): Promise<Phishin
         config: {
             responseMimeType: "application/json",
             responseSchema: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        sender_name: { type: Type.STRING },
-                        sender_email: { type: Type.STRING },
-                        subject: { type: Type.STRING },
-                        body: { type: Type.STRING },
-                        is_phishing: { type: Type.BOOLEAN },
-                        explanation: { type: Type.STRING },
-                    },
-                    required: ["sender_name", "sender_email", "subject", "body", "is_phishing", "explanation"]
-                }
+                type: Type.OBJECT,
+                properties: {
+                    sender_name: { type: Type.STRING },
+                    sender_email: { type: Type.STRING },
+                    subject: { type: Type.STRING },
+                    body: { type: Type.STRING },
+                    is_phishing: { type: Type.BOOLEAN },
+                    explanation: { type: Type.STRING },
+                },
+                required: ["sender_name", "sender_email", "subject", "body", "is_phishing", "explanation"]
             }
         }
     });

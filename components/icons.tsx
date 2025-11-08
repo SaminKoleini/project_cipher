@@ -111,3 +111,61 @@ export const SkipIcon = () => (
       <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 7.5 7.5 7.5-7.5" />
     </svg>
 );
+
+export const ChevronDoubleLeftIcon = ({className = "w-6 h-6"}: {className?: string}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
+    </svg>
+);
+
+export const ChevronDoubleRightIcon = ({className = "w-6 h-6"}: {className?: string}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 4.5l7.5 7.5-7.5 7.5m-6-15l7.5 7.5-7.5 7.5" />
+    </svg>
+);
+
+export const HelpIcon = ({className = "w-8 h-8"}: {className?: string}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+    </svg>
+);
+
+export const SkilletIcon = ({className = "w-10 h-10"}: {className?: string}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}>
+        <defs>
+            <radialGradient id="skilletGlow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                <stop offset="0%" style={{stopColor: '#67e8f9', stopOpacity: 0.7}} />
+                <stop offset="100%" style={{stopColor: '#06b6d4', stopOpacity: 0}} />
+            </radialGradient>
+        </defs>
+        {/* Glow Effect */}
+        <path d="M7,17.5 a6,6 0 1,1 10,0" fill="url(#skilletGlow)"/>
+
+        {/* Head */}
+        <path d="M6 10 C 6 6, 18 6, 18 10 V 15 C 18 19, 6 19, 6 15 Z" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Eyes */}
+        <circle cx="10" cy="12.5" r="1.2" fill="currentColor" stroke="none" />
+        <circle cx="14" cy="12.5" r="1.2" fill="currentColor" stroke="none" />
+        
+        {/* Mouth */}
+        <path d="M10 16 Q 12 17.5 14 16" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+
+        {/* Antenna */}
+        <path d="M12 6 V 3" strokeLinecap="round" />
+        <circle cx="12" cy="2" r="1" fill="currentColor" />
+    </svg>
+);
+
+export const NoteIcon = ({className = "w-8 h-8"}: {className?: string}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+    </svg>
+);
+
+
+export const CloseIcon = ({className = "w-6 h-6"}: {className?: string}) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);

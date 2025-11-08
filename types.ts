@@ -1,5 +1,5 @@
 export interface Message {
-  sender: 'user' | 'supervisor';
+  sender: 'user' | 'supervisor' | 'ai-assistant';
   text: string;
 }
 

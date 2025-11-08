@@ -1,5 +1,3 @@
-
-
 import { Case } from './types';
 
 export const SUPERVISOR_NAME = "Control";
@@ -15,7 +13,7 @@ export const cases: Case[] = [
         id: 101,
         title: "Mission 1: The Art of Disguise",
         learningObjective: "Learn to identify phishing attempts.",
-        briefing: "Welcome, Recruit. Your first assessment is live. We've intercepted several communications intended for a high-value target. One is a phishing attempt from an enemy agent. Your mission: identify the hostile email before the target falls for the trap.",
+        briefing: "Welcome, Recruit. Your first assessment is live. We've intercepted a suspicious communication intended for a high-value target. Your mission is to analyze it and determine if it's a phishing attempt from an enemy agent before the target falls for the trap.",
         supervisorPrompt: `You are 'Control', a senior cybersecurity instructor. Your tone is professional and concise. Explain that enemy agents use 'phishing'—disguised emails—to trick targets. Present these key red flags as tactical advice:
 1.  **Unexpected Sender:** Does the communication make sense?
 2.  **Sense of Urgency:** Is it trying to make you panic?
@@ -25,7 +23,7 @@ Keep your explanation brief. End by asking if the recruit is ready to begin the 
         challengeTriggerPhrase: "Are you ready to begin the analysis?",
         challenge: {
           type: 'spot-the-phish',
-          prompt: `Generate a JSON object containing an array of 3 email objects for a cybersecurity challenge. One email must be a clear phishing attempt, and two must be legitimate. The structure for each email object is: { sender_name: string, sender_email: string, subject: string, body: string, is_phishing: boolean, explanation: string }. Ensure the phishing email has common red flags.`,
+          prompt: `Generate a JSON object for a single email for a cybersecurity challenge. The email can be either a phishing attempt (75% chance) or a legitimate one (25% chance). The structure for the email object is: { sender_name: string, sender_email: string, subject: string, body: string, is_phishing: boolean, explanation: string }. Set is_phishing accordingly. Ensure any phishing email has common red flags. The explanation should justify why it is or isn't phishing.`,
           validatorPrompt: 'The user has selected an email. Based on the provided email data, confirm if their selection was correct and provide the explanation.'
         },
       },
@@ -166,7 +164,7 @@ Mention that password managers are standard issue. End by asking them to submit 
             challenge: {
                 type: 'text-response',
                 prompt: "The agent's VPN is off. What is the single, most critical instruction you would give them before they send the file?",
-                validatorPrompt: `The user's response is: [USER_INPUT]. Evaluate their instruction. The most critical instruction is to 'Turn on the VPN' or 'Enable the VPN' before sending anything. Any other complex plan is incorrect. The answer must be simple and direct. If correct, end with "Precisely. A simple action, a critical outcome. Case File Closed.". Respond in JSON format: { is_correct: boolean, explanation: string }`
+                validatorPrompt: `The user's response is: [USER_INPUT]. Evaluate their instruction. The most critical instruction is to 'Turn on the VPN' or 'Enable the VPN' before sending anything. A correct plan is simple and direct. If correct, end with "Precisely. A simple action, a critical outcome. Case File Closed.". Respond in JSON format: { is_correct: boolean, explanation: string }`
             }
         }
     ]
@@ -205,7 +203,7 @@ Mention that password managers are standard issue. End by asking them to submit 
         },
         {
             id: 403,
-            title: "Mission 3: Trustless Exchange",
+            title: "Trustless Exchange",
             learningObjective: "Apply distributed trust concepts to a practical scenario.",
             briefing: "Two agents who don't trust each other need to exchange a secret key for a password. Normally, they'd need a trusted third person to oversee the swap. But with distributed technology, we can use a 'smart contract'—a self-executing agreement that removes the need for a middleman.",
             supervisorPrompt: `You are 'Control'. Your tone is concise. Explain a smart contract as a 'digital dead drop'. Agent A puts their key in, Agent B their password. The box automatically opens for both once both items are deposited. End your briefing with the exact sentence: "Now, analyze the scenario."`,
@@ -263,6 +261,67 @@ Mention that password managers are standard issue. End by asking them to submit 
                 type: 'text-response',
                 prompt: `An allied nation needs to verify that our agency's launch codes are valid **without ever seeing the codes themselves.**\n\nWhat is the fundamental cryptographic concept that makes this possible?`,
                 validatorPrompt: `The user's response is: [USER_INPUT]. Evaluate their answer. A correct response must identify the concept of a 'zero-knowledge proof' or explain the idea of proving something is true without revealing the underlying information. If correct, end your response with: "You understand the future of security. Case File Closed.". Respond in JSON format: { is_correct: boolean, explanation: string }`
+            }
+        }
+    ]
+  },
+  {
+    id: 6,
+    title: "Case File 006: The Key Exchange",
+    description: "Master the art of asymmetric cryptography. Learn how agents Bob and Alice use public and private keys to communicate securely in hostile territory.",
+    summary: "LESSON: Secure communication relies on a pair of keys. Your public key is a locked mailbox that anyone can use to send you a message, but only your private key can open it. This allows for encryption, secure key exchange, and digital signatures, forming the bedrock of modern digital security.",
+    missions: [
+        {
+            id: 601,
+            title: "Mission 1: The Two-Key Problem",
+            learningObjective: "Understand the difference between public and private keys.",
+            briefing: "Agent Bob needs to receive a secret message from Agent Alice, but they are being monitored. They cannot share a secret key in person. This mission will teach you how they solve this using a 'key pair'.",
+            supervisorPrompt: `You are 'Control'. Your tone is concise. Explain public/private keys using a 'secure mailbox' analogy.
+- Your **Public Key** is like your mailbox address and slot. Anyone can know it and use it to drop a message in.
+- Your **Private Key** is the only key that can open the mailbox. You **never** share it.
+This is called asymmetric cryptography. End your briefing with the exact sentence: "Now, prepare your recommendation for Agent Bob."`,
+            challengeTriggerPhrase: "Now, prepare your recommendation for Agent Bob.",
+            challenge: {
+                type: 'text-response',
+                prompt: "To receive a secret message from Alice, which key should Bob give her, and which key must he keep secret? Explain your reasoning.",
+                validatorPrompt: `The user's response is: [USER_INPUT]. Evaluate their answer. A correct response must state that Bob gives Alice his **public key** and keeps his **private key** secret. The reasoning should mention that anyone can use the public key to encrypt, but only the private key can decrypt. Respond in JSON format: { is_correct: boolean, explanation: string }`
+            }
+        },
+        {
+            id: 602,
+            title: "Mission 2: The Secure Handshake",
+            learningObjective: "Learn how a secure key exchange works.",
+            briefing: "Bob and Alice need to establish a secure, real-time chat channel. They must agree on a shared secret key to encrypt their conversation, but an eavesdropper, Eve, is listening. They must create this key without ever sending it directly.",
+            supervisorPrompt: `You are 'Control'. Your tone is concise. Explain the Diffie-Hellman key exchange using a 'paint mixing' analogy.
+1. Bob and Alice publicly agree on a starting color (e.g., yellow).
+2. They each secretly choose a private color (Bob: blue, Alice: red).
+3. They mix their secret color with the public color and exchange the results (Bob sends green, Alice sends orange).
+4. They mix the color they received with their original secret color. Both will arrive at the same final secret color (brown), which Eve cannot compute.
+End your briefing with the exact sentence: "Now, analyze the flaw in Eve's plan."`,
+            challengeTriggerPhrase: "Now, analyze the flaw in Eve's plan.",
+            challenge: {
+                type: 'text-response',
+                prompt: "Eve intercepted the public color (yellow) and the two mixed colors (green and orange) that were exchanged. Why can't she figure out Bob and Alice's final shared secret color (brown)?",
+                validatorPrompt: `The user's response is: [USER_INPUT]. Evaluate their answer. A correct response must explain that Eve is missing the original secret colors (blue and red), which were never transmitted over the public channel. Without those, she cannot complete the 'mixture' to find the final secret. Respond in JSON format: { is_correct: boolean, explanation: string }`
+            }
+        },
+        {
+            id: 603,
+            title: "Mission 3: The Unforgeable Signature",
+            learningObjective: "Understand how digital signatures verify identity.",
+            briefing: "Agent Alice has received a critical order. An enemy agent, Eve, is known to be intercepting and forging messages. Alice must understand the core principle of digital signatures to trust the order. Your mission is to confirm she has the correct understanding.",
+            supervisorPrompt: `You are 'Control'. Your tone is concise. Explain that digital signatures use a key pair to prove a message is authentic and unaltered, like a unique digital wax seal. Alice needs to be certain an order is from Bob. I am patching the question to your terminal now. End your briefing with the exact sentence: "Select the correct principle."`,
+            challengeTriggerPhrase: "Select the correct principle.",
+            caseCompleteTriggerPhrase: "You have mastered the fundamentals of secure communication. Case File Closed.",
+            challenge: {
+                type: 'text-response',
+                prompt: `Alice needs to verify an order is from Bob. What is the fundamental principle of a digital signature she must rely on? Respond with the number of the correct option.
+
+1. Bob encrypts the message with Alice's public key.
+2. Bob signs the message with his **private key**, and Alice verifies it with his **public key**.
+3. Bob signs the message with a shared secret password known only to them.
+4. Bob sends the message over a secure, agency-approved VPN channel.`,
+                validatorPrompt: `The user's response is: [USER_INPUT]. The correct answer is option 2. A correct response must contain the number '2'. The core principle of a digital signature is that it's created with the sender's private key and verified with their public key, which proves authenticity (it came from the sender) and integrity (it wasn't changed). If the user is correct, end your response with the exact text: "You have mastered the fundamentals of secure communication. Case File Closed." Respond in JSON format: { is_correct: boolean, explanation: string }`
             }
         }
     ]
