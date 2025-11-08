@@ -1,0 +1,5 @@
+{
+  "name": "Project Cipher",
+  "description": "An interactive educational app that teaches cybersecurity fundamentals through a captivating spy-themed storyline. Users act as recruits, guided by an AI supervisor through missions to learn about phishing, password security, and more.",
+  "requestFramePermissions": []
+}
