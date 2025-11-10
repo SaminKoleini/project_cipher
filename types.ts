@@ -16,6 +16,7 @@ export interface Challenge {
   type: 'spot-the-phish' | 'password-strength' | 'text-response';
   prompt: string;
   validatorPrompt: string;
+  promptGenerator?: string;
 }
 
 export interface Mission {

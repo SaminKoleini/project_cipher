@@ -1,8 +1,11 @@
+
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Message, PhishingChallenge, Mission } from './types';
 import { cases, SUPERVISOR_NAME } from './constants';
-import { getTutorResponse, generatePhishingChallenge, validatePasswordStrength, validateChallengeResponse } from './services/geminiService';
-import { SendIcon, LoadingSpinner, ShieldCheckIcon, CheckCircleIcon, TargetIcon, UserCircleIcon, ArrowLeftIcon, CaseIcon, TerminalIcon, IntelIcon, DocumentTextIcon, SkipIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon } from './components/icons';
+import { getTutorResponse, generatePhishingChallenge, validatePasswordStrength, validateChallengeResponse, generateDynamicTextChallenge } from './services/geminiService';
+import { SendIcon, LoadingSpinner, ShieldCheckIcon, CheckCircleIcon, TargetIcon, UserCircleIcon, ArrowLeftIcon, CaseIcon, TerminalIcon, IntelIcon, DocumentTextIcon, SkipIcon, ChevronDoubleLeftIcon, ChevronDoubleRightIcon, CloseIcon } from './components/icons';
 import HelpChat from './components/HelpChat';
 import NoteTaker from './components/NoteTaker';
 
@@ -403,6 +406,69 @@ const BriefingScreen = ({ mission, onProceed }: { mission: Mission, onProceed: (
     );
 };
 
+interface MissionBriefingModalProps {
+  mission: Mission;
+  onClose: () => void;
+  gameState: GameState;
+  challengeData: any;
+  messages: Message[];
+}
+
+const MissionBriefingModal: React.FC<MissionBriefingModalProps> = ({ mission, onClose, gameState, challengeData, messages }) => {
+    const lastSupervisorMessage = messages.filter(m => m.sender === 'supervisor').pop();
+
+    let challengePrompt = '';
+    if ((gameState === 'challenge' || gameState === 'challenge-complete') && challengeData) {
+        if (mission.challenge.type === 'spot-the-phish' && challengeData.body) {
+            challengePrompt = `From: ${challengeData.sender_name} <${challengeData.sender_email}>\nSubject: ${challengeData.subject}\n\n${challengeData.body}`;
+        } else if (mission.challenge.type === 'password-strength') {
+            challengePrompt = `Construct a secure password that meets agency standards for security.`;
+        } else if (mission.challenge.type === 'text-response' && challengeData.question) {
+            challengePrompt = challengeData.question;
+        }
+    }
+    
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex justify-center items-center p-4 fade-in">
+            <div className="w-full max-w-3xl hud-border p-6 md:p-8 bg-slate-900/80 backdrop-blur-sm relative text-center">
+                <button onClick={onClose} className="absolute top-3 right-3 p-1 text-gray-400 hover:text-white hover:bg-slate-700 rounded-md transition-colors">
+                    <CloseIcon />
+                </button>
+                <DocumentTextIcon />
+                <h2 className="font-orbitron text-2xl text-cyan-400 tracking-widest uppercase text-glow mb-2">
+                    Mission Intel
+                </h2>
+                <p className="text-lg font-semibold text-gray-300 mb-4">{mission.title}</p>
+                <hr className="border-slate-700 my-4"/>
+                <div className="text-left font-mono text-gray-300 leading-relaxed max-h-[60vh] overflow-y-auto pr-4 space-y-6">
+                    <div>
+                        <h3 className="font-orbitron text-lg text-cyan-400 mb-2">// BRIEFING //</h3>
+                        <p>{mission.briefing}</p>
+                    </div>
+
+                    {lastSupervisorMessage && (
+                        <div>
+                            <h3 className="font-orbitron text-lg text-cyan-400 mb-2">// SUPERVISOR DIRECTIVE //</h3>
+                            <div className="p-3 bg-black/30 border border-slate-700 rounded-md">
+                                <FormattedMessage text={lastSupervisorMessage.text} />
+                            </div>
+                        </div>
+                    )}
+
+                    {challengePrompt && (
+                         <div>
+                            <h3 className="font-orbitron text-lg text-cyan-400 mb-2">// CURRENT OBJECTIVE //</h3>
+                             <div className="p-3 bg-black/30 border border-slate-700 rounded-md whitespace-pre-wrap">
+                                 <FormattedMessage text={challengePrompt} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 export default function App() {
     const [currentCaseIndex, setCurrentCaseIndex] = useState(0);
@@ -414,6 +480,7 @@ export default function App() {
     const [isLoading, setIsLoading] = useState(false);
     const [isAwaitingChallenge, setIsAwaitingChallenge] = useState(false);
     const [view, setView] = useState<View>('dashboard');
+    const [isBriefingModalOpen, setIsBriefingModalOpen] = useState(false);
     
     const [challengeData, setChallengeData] = useState<any>(null);
     const [challengeFeedback, setChallengeFeedback] = useState<{isCorrect: boolean, text: string} | null>(null);
@@ -489,8 +556,17 @@ export default function App() {
                 const email = await generatePhishingChallenge(currentMission.challenge.prompt);
                 setChallengeData(email);
             }
+            else if (currentMission.challenge.type === 'text-response') {
+                if (currentMission.challenge.promptGenerator) {
+                    const dynamicChallenge = await generateDynamicTextChallenge(currentMission.challenge.promptGenerator);
+                    setChallengeData(dynamicChallenge); // { question, answer, explanation }
+                } else {
+                    // Static text challenge
+                    setChallengeData({ question: currentMission.challenge.prompt });
+                }
+            }
             else {
-                // For other challenge types, data is generated on-the-fly or not needed.
+                // For password strength, etc.
                 setChallengeData({});
             }
         } catch (error) {
@@ -536,7 +612,17 @@ export default function App() {
     const handleTextChallengeSubmit = async (plan: string) => {
         setIsLoading(true);
         playSound('click');
-        const result = await validateChallengeResponse(currentMission.challenge.validatorPrompt, plan);
+        
+        let finalValidatorPrompt = currentMission.challenge.validatorPrompt;
+
+        // If it was a dynamic challenge, inject the correct answer and explanation.
+        if (currentMission.challenge.promptGenerator && challengeData?.answer && challengeData?.explanation) {
+            finalValidatorPrompt = finalValidatorPrompt
+                .replace('[CORRECT_ANSWER]', challengeData.answer)
+                .replace('[EXPLANATION]', challengeData.explanation);
+        }
+
+        const result = await validateChallengeResponse(finalValidatorPrompt, plan);
         playSound(result.is_correct ? 'success' : 'fail');
         setChallengeFeedback({ isCorrect: result.is_correct, text: result.explanation });
 
@@ -634,7 +720,7 @@ export default function App() {
                         <>
                           {currentMission.challenge.type === 'spot-the-phish' && <PhishingChallengeComponent email={challengeData} onClassify={handlePhishingClassification} />}
                           {currentMission.challenge.type === 'password-strength' && <PasswordChallengeComponent onSubmit={handlePasswordSubmit} feedback={challengeFeedback} isLoading={isLoading}/>}
-                          {currentMission.challenge.type === 'text-response' && <TextChallengeComponent mission={currentMission} onSubmit={handleTextChallengeSubmit} isLoading={isLoading} />}
+                          {currentMission.challenge.type === 'text-response' && <TextChallengeComponent challengeData={challengeData} onSubmit={handleTextChallengeSubmit} isLoading={isLoading} />}
                         </>
                       )}
                     </div>
@@ -785,6 +871,16 @@ export default function App() {
                             <div className="flex items-center gap-2"><TerminalIcon/><span>// COMMS_CHANNEL: ENCRYPTED</span></div>
                             <span>// STATUS: ACTIVE</span>
                         </div>
+                        {(gameState === 'training' || gameState === 'challenge') && (
+                            <button
+                                title="Review Mission Briefing"
+                                onClick={() => { playSound('click'); setIsBriefingModalOpen(true); }}
+                                onMouseEnter={() => playSound('hover')}
+                                className="absolute bottom-4 left-4 z-20 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-600 rounded-full p-2 text-cyan-400 transition-all"
+                            >
+                                <IntelIcon />
+                            </button>
+                        )}
                         {renderContent()}
                     </main>
 
@@ -825,6 +921,15 @@ export default function App() {
                 <NoteTaker />
                 <HelpChat mission={currentMission} />
             </div>
+            {isBriefingModalOpen && (
+                <MissionBriefingModal 
+                    mission={currentMission} 
+                    onClose={() => { playSound('click'); setIsBriefingModalOpen(false); }} 
+                    gameState={gameState}
+                    challengeData={challengeData}
+                    messages={messages}
+                />
+            )}
         </div>
     );
 }
@@ -930,9 +1035,9 @@ const PasswordChallengeComponent: React.FC<{
     )
 }
 
-const TextChallengeComponent: React.FC<{mission: Mission, onSubmit: (plan: string) => void, isLoading: boolean}> = ({ mission, onSubmit, isLoading }) => {
+const TextChallengeComponent: React.FC<{challengeData: any, onSubmit: (plan: string) => void, isLoading: boolean}> = ({ challengeData, onSubmit, isLoading }) => {
     const [text, setText] = useState('');
-    const prompt = mission.challenge.prompt || "Review the final transmission from Control. Formulate your response.";
+    const prompt = challengeData?.question || "Review the final transmission from Control. Formulate your response.";
     
     return (
          <div className="max-w-lg mx-auto mt-8">

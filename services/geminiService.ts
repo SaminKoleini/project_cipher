@@ -140,3 +140,29 @@ export async function validateChallengeResponse(validatorPrompt: string, userInp
         return { is_correct: false, explanation: "Could not validate your plan due to an error." };
     }
 }
+
+export async function generateDynamicTextChallenge(promptGenerator: string): Promise<{question: string; answer: string; explanation: string}> {
+  try {
+    const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: promptGenerator,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    question: { type: Type.STRING, description: 'The challenge question/prompt to show the user, including any options.' },
+                    answer: { type: Type.STRING, description: 'The correct answer or choice.' },
+                    explanation: { type: Type.STRING, description: 'A brief explanation of why the answer is correct.' },
+                },
+                required: ["question", "answer", "explanation"]
+            }
+        }
+    });
+    const jsonText = response.text.trim();
+    return JSON.parse(jsonText);
+  } catch (error) {
+      console.error("Error generating dynamic text challenge:", error);
+      throw new Error("Failed to generate dynamic challenge. Please try again.");
+  }
+}

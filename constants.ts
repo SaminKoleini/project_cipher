@@ -76,7 +76,8 @@ Mention that password managers are standard issue. End by asking them to submit 
         challenge: {
             type: 'text-response',
             prompt: `The following networks are visible at your location. One is a hostile "evil twin." Identify it.\n\n- "AirportFreeWiFi"\n- "CoffeeShopConnect"\n- "AIRPORT_FREE_WIFI"\n- "Guest_Network_2.4GHz"`,
-            validatorPrompt: `The user's response is: [USER_INPUT]. The visible networks are "AirportFreeWiFi", "CoffeeShopConnect", "AIRPORT_FREE_WIFI", "Guest_Network_2.4GHz". Evaluate their reasoning. The most likely malicious network is 'AIRPORT_FREE_WIFI' because its name is designed to be confused with the legitimate "AirportFreeWiFi", a classic evil twin tactic. A correct answer should identify this network and explain why. Respond in JSON format: { is_correct: boolean, explanation: string }`
+            promptGenerator: `Generate a scenario for a cybersecurity recruit to identify an "evil twin" Wi-Fi network. Create a JSON object with: 1. "question": A string containing a brief scenario and a list of 4 Wi-Fi network names (SSIDs). One of the SSIDs should be a classic "evil twin" of another in the list (e.g., subtle character change, similar name). 2. "answer": A string containing the name of the malicious "evil twin" SSID. 3. "explanation": A string explaining why that SSID is the evil twin.`,
+            validatorPrompt: `The user's response is: [USER_INPUT]. The correct answer is '[CORRECT_ANSWER]'. Evaluate if the user identified the correct network. Explain that [EXPLANATION]. Respond in JSON format: { is_correct: boolean, explanation: string }`
         }
       },
       {
@@ -89,7 +90,8 @@ Mention that password managers are standard issue. End by asking them to submit 
         challenge: {
             type: 'text-response',
             prompt: `Your packet sniffer captured the following data log. Find the exposed credentials.\n\n--- CAPTURE LOG ---\n[1] protocol=DNS query=google-analytics.com\n[2] protocol=SMTP to=heist-leader@proton.me subject='Dinner?' body='...'\n[3] protocol=HTTPS host=secure-bank-login.com data=[ENCRYPTED]\n[4] protocol=FTP host=file-server.net data={user:'BigSal', pass:'dapassword123'}\n[5] protocol=HTTP host=weather.com req='/forecast'\n--- END LOG ---`,
-            validatorPrompt: `The user's response is: [USER_INPUT]. Evaluate their response. They must identify both the username 'BigSal' and the password 'dapassword123' from the FTP transmission. A correct response must contain both credentials. Explain that FTP is unencrypted, which is why the credentials were visible. Respond in JSON format: { is_correct: boolean, explanation: string }`
+            promptGenerator: `Generate a scenario for a cybersecurity recruit to identify credentials in a packet sniffer log. Create a JSON object with: 1. "question": A string containing a brief scenario and a mock data log with 4-5 entries. One entry should be an unencrypted protocol like FTP or HTTP POST showing a clear username and password. Other entries should be noise (DNS, HTTPS). 2. "answer": A string containing both the username and password found (e.g., "user: BigSal, pass: dapassword123"). 3. "explanation": A string explaining that protocols like FTP transmit data in plaintext, making credentials visible.`,
+            validatorPrompt: `The user's response is: [USER_INPUT]. Evaluate their response. They must identify the credentials '[CORRECT_ANSWER]'. A correct response must contain both. Explain that [EXPLANATION]. Respond in JSON format: { is_correct: boolean, explanation: string }`
         }
       },
       {
@@ -318,10 +320,11 @@ End your briefing with the exact sentence: "Now, analyze the flaw in Eve's plan.
                 prompt: `Alice needs to verify an order is from Bob. What is the fundamental principle of a digital signature she must rely on? Respond with the number of the correct option.
 
 1. Bob encrypts the message with Alice's public key.
-2. Bob signs the message with his **private key**, and Alice verifies it with his **public key**.
+2. Bob signs the a message with his **private key**, and Alice verifies it with his **public key**.
 3. Bob signs the message with a shared secret password known only to them.
 4. Bob sends the message over a secure, agency-approved VPN channel.`,
-                validatorPrompt: `The user's response is: [USER_INPUT]. The correct answer is option 2. A correct response must contain the number '2'. The core principle of a digital signature is that it's created with the sender's private key and verified with their public key, which proves authenticity (it came from the sender) and integrity (it wasn't changed). If the user is correct, end your response with the exact text: "You have mastered the fundamentals of secure communication. Case File Closed." Respond in JSON format: { is_correct: boolean, explanation: string }`
+                promptGenerator: `Generate a multiple choice question to test a recruit on how digital signatures work. Create a JSON object with: 1. "question": A string containing a brief scenario (e.g., Alice verifying a message from Bob) and 4 numbered options. One option must be the correct principle: signing with a private key, verifying with a public key. The other three should be plausible but incorrect distractors. 2. "answer": A string containing the number of the correct option (e.g., "2"). 3. "explanation": A string briefly explaining why signing with private and verifying with public is correct for authenticity and integrity.`,
+                validatorPrompt: `The user's response is: [USER_INPUT]. The correct answer is option '[CORRECT_ANSWER]'. Evaluate if the user selected the correct number. Explain that [EXPLANATION]. If the user is correct, end your response with the exact text: "You have mastered the fundamentals of secure communication. Case File Closed." Respond in JSON format: { is_correct: boolean, explanation: string }`
             }
         }
     ]
